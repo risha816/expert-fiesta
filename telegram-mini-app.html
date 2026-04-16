@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mini App</title>
+
+  <!-- ✅ 1. Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- ✅ 2. Adsgram SDK — official CDN -->
+  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:#0a0a0f; --surface:#13131a; --card:#1a1a24;
+      --border:rgba(255,255,255,0.08); --accent:#7c5cfc;
+      --accent2:#fc5c7d; --accent3:#5cf0c8;
+      --text:#f0f0ff; --muted:#888aa0; --gold:#ffd166;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:radial-gradient(ellipse 60% 40% at 20% 10%,rgba(124,92,252,.15) 0%,transparent 60%),
+                 radial-gradient(ellipse 40% 30% at 80% 85%,rgba(252,92,125,.10) 0%,transparent 60%)}
+
+    .page{display:none;min-height:100vh;padding-bottom:80px;animation:fadeUp .3s ease;position:relative;z-index:1}
+    .page.active{display:block}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+    /* HOME */
+    .hero{padding:28px 18px 16px}
+    .profile-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:18px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;box-shadow:0 6px 30px rgba(0,0,0,.35)}
+    .profile-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3))}
+    .av-wrap{position:relative;flex-shrink:0}
+    .av{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;border:2.5px solid rgba(255,255,255,.12);overflow:hidden}
+    .av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+    .online{position:absolute;bottom:2px;right:2px;width:13px;height:13px;background:#22e55a;border-radius:50%;border:2px solid var(--card)}
+    .pinfo{flex:1;min-width:0}
+    .pname{font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pusr{font-size:12px;color:var(--accent3);font-family:'Space Mono',monospace;margin-top:2px}
+    .pid{margin-top:5px;font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;background:rgba(255,255,255,.05);display:inline-block;padding:2px 8px;border-radius:6px}
+    .sec-title{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:18px 18px 10px}
+
+    /* CHANNELS */
+    .ch-list{padding:0 18px;display:flex;flex-direction:column;gap:11px}
+    .ch-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:13px;cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}
+    .ch-card:active{transform:scale(.97)}
+    .ch-card:hover{border-color:rgba(124,92,252,.35);box-shadow:0 0 18px rgba(124,92,252,.1)}
+    .ch-ico{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0}
+    .ci1{background:linear-gradient(135deg,#7c5cfc,#5c8afc)}
+    .ci2{background:linear-gradient(135deg,#fc5c7d,#fcb75c)}
+    .ci3{background:linear-gradient(135deg,#5cf0c8,#5ca8fc)}
+    .ci4{background:linear-gradient(135deg,#ffd166,#fc5c7d)}
+    .ch-info{flex:1}
+    .ch-name{font-size:14px;font-weight:600}
+    .ch-desc{font-size:11px;color:var(--muted);margin-top:2px}
+    .ch-badge{font-size:9px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:20px;color:#fff;background:rgba(124,92,252,.35)}
+    .ch-arr{color:var(--muted);font-size:15px}
+
+    /* DETAIL */
+    .det-hdr{padding:18px 18px 0;display:flex;align-items:center;gap:12px}
+    .back{width:38px;height:38px;border-radius:11px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;transition:background .18s}
+    .back:active{background:rgba(124,92,252,.2)}
+    .det-ttl{font-size:17px;font-weight:700}
+    .det-sub{font-size:11px;color:var(--muted)}
+    .det-body{padding:16px 18px;display:flex;flex-direction:column;gap:13px}
+    .det-ban{border-radius:16px;height:150px;display:flex;align-items:center;justify-content:center;font-size:60px}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+    .stat{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:13px 8px;text-align:center}
+    .stat-v{font-size:18px;font-weight:700;color:var(--accent)}
+    .stat-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:1px}
+    .about{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
+    .about h3{font-size:12px;color:var(--muted);margin-bottom:7px;font-weight:500}
+    .about p{font-size:13px;line-height:1.7}
+
+    /* CTA */
+    .cta{width:100%;padding:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:13px;color:#fff;font-size:15px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;box-shadow:0 4px 20px rgba(124,92,252,.35);transition:transform .14s,opacity .14s}
+    .cta:active{transform:scale(.97)}
+    .cta:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    .err-box{background:rgba(252,92,125,.08);border:1px solid rgba(252,92,125,.2);border-radius:12px;padding:14px 16px;font-size:12px;color:var(--accent2);line-height:1.6;display:none}
+
+    /* AD PAGE */
+    .ad-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:28px 22px;text-align:center}
+    .spinner{width:68px;height:68px;border-radius:50%;border:4px solid rgba(124,92,252,.15);border-top-color:var(--accent);animation:spin .9s linear infinite;margin-bottom:22px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .ad-prog{width:100%;height:5px;background:rgba(255,255,255,.08);border-radius:3px;margin-top:18px;overflow:hidden}
+    .ad-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;width:0%;transition:width .25s}
+    .cd-wrap{position:relative;width:80px;height:80px;margin-bottom:18px}
+    .cd-wrap svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+    .ring-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:6}
+    .ring-fg{fill:none;stroke:var(--accent3);stroke-width:6;stroke-linecap:round;stroke-dasharray:226;stroke-dashoffset:226;transition:stroke-dashoffset 1s linear}
+    .cd-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent3)}
+    .ad-ttl{font-size:19px;font-weight:700;margin-bottom:7px}
+    .ad-sub{font-size:13px;color:var(--muted);line-height:1.65}
+    .ad-badge{margin-top:14px;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.25);border-radius:10px;padding:8px 18px;font-size:12px;color:var(--accent);font-weight:600}
+
+    /* REWARD */
+    .rw-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:28px 22px;text-align:center}
+    .rw-ico{font-size:72px;margin-bottom:16px;animation:pop .4s cubic-bezier(.175,.885,.32,1.275)}
+    @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+    .rw-ttl{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--gold),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .rw-sub{font-size:13px;color:var(--muted);margin:10px 0 22px;line-height:1.65}
+    .rw-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 28px;margin-bottom:22px;font-size:13px;color:var(--muted);line-height:1.8;width:100%}
+    .rw-box strong{color:var(--gold);font-size:15px}
+
+    /* NAV */
+    .bot-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(10,10,15,.88);backdrop-filter:blur(18px);border-top:1px solid var(--border);display:flex;padding:6px 0 env(safe-area-inset-bottom)}
+    .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;border:none;background:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:10px;font-weight:500;cursor:pointer;transition:color .18s}
+    .nav-btn.active{color:var(--accent)}
+    .nav-ico{font-size:20px}
+
+    /* TOAST */
+    .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-90px);background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:9px 16px;font-size:12px;font-weight:500;color:var(--text);z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:transform .28s cubic-bezier(.175,.885,.32,1.275)}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+  </style>
+</head>
+<body>
+
+<!-- HOME -->
+<div class="page active" id="pg-home">
+  <div class="hero">
+    <div class="profile-card">
+      <div class="av-wrap">
+        <div class="av" id="av">?</div>
+        <div class="online"></div>
+      </div>
+      <div class="pinfo">
+        <div class="pname" id="pname">Loading…</div>
+        <div class="pusr" id="pusr">@—</div>
+        <div class="pid" id="pid">ID: —</div>
+      </div>
+    </div>
+  </div>
+  <div class="sec-title">✦ Featured Channels</div>
+  <div class="ch-list">
+    <div class="ch-card" onclick="openCh(0)">
+      <div class="ch-ico ci1">🎮</div>
+      <div class="ch-info"><div class="ch-name">Gaming Universe</div><div class="ch-desc">Latest game news & reviews</div></div>
+      <span class="ch-badge">HOT</span><span class="ch-arr">›</span>
+    </div>
+    <div class="ch-card" onclick="openCh(1)">
+      <div class="ch-ico ci2">💰</div>
+      <div class="ch-info"><div class="ch-name">Crypto Signals</div><div class="ch-desc">Daily market insights</div></div>
+      <span class="ch-badge">LIVE</span><span class="ch-arr">›</span>
+    </div>
+    <div class="ch-card" onclick="openCh(2)">
+      <div class="ch-ico ci3">🎨</div>
+      <div class="ch-info"><div class="ch-name">Design Hub</div><div class="ch-desc">UI/UX resources & tips</div></div>
+      <span class="ch-badge">NEW</span><span class="ch-arr">›</span>
+    </div>
+    <div class="ch-card" onclick="openCh(3)">
+      <div class="ch-ico ci4">🤖</div>
+      <div class="ch-info"><div class="ch-name">AI Tools Daily</div><div class="ch-desc">Top AI apps & prompts</div></div>
+      <span class="ch-badge">AI</span><span class="ch-arr">›</span>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL -->
+<div class="page" id="pg-detail">
+  <div class="det-hdr">
+    <div class="back" onclick="goHome()">‹</div>
+    <div><div class="det-ttl" id="dttl">Channel</div><div class="det-sub" id="dsub">Watch ads to unlock</div></div>
+  </div>
+  <div class="det-body">
+    <div class="det-ban" id="dban">🎮</div>
+    <div class="stats">
+      <div class="stat"><div class="stat-v" id="sm">—</div><div class="stat-l">Members</div></div>
+      <div class="stat"><div class="stat-v" id="sp">—</div><div class="stat-l">Posts</div></div>
+      <div class="stat"><div class="stat-v" id="sr">—</div><div class="stat-l">Rating</div></div>
+    </div>
+    <div class="about"><h3>About</h3><p id="ddesc">—</p></div>
+    <button class="cta" id="joinBtn" onclick="startAd()">🎯 Join Channel — Watch Ad</button>
+    <div class="err-box" id="errBox">
+      ⚠️ Ad unavailable. Make sure:<br/>
+      • You're inside Telegram (not browser)<br/>
+      • Block ID <strong>25624</strong> is approved in Adsgram<br/>
+      • Your app passed Adsgram moderation
+    </div>
+  </div>
+</div>
+
+<!-- AD PAGE -->
+<div class="page" id="pg-ad">
+  <div class="ad-wrap" id="stLoad">
+    <div class="spinner"></div>
+    <div class="ad-ttl">Loading Ad…</div>
+    <div class="ad-sub">Please wait while your<br/>ad is being prepared.</div>
+    <div class="ad-prog"><div class="ad-fill" id="fill"></div></div>
+    <div class="ad-badge" id="adBadge">Ad 1 of 2</div>
+  </div>
+  <div class="ad-wrap" id="stCool" style="display:none">
+    <div class="cd-wrap">
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle class="ring-bg" cx="40" cy="40" r="36"/>
+        <circle class="ring-fg" id="ringFg" cx="40" cy="40" r="36"/>
+      </svg>
+      <div class="cd-num" id="cdNum">5</div>
+    </div>
+    <div class="ad-ttl">Cool Down ⏳</div>
+    <div class="ad-sub">Next ad loads in a moment.<br/>Almost there!</div>
+    <div class="ad-badge">✓ Ad 1 done — Ad 2 coming…</div>
+  </div>
+</div>
+
+<!-- REWARD -->
+<div class="page" id="pg-reward">
+  <div class="rw-wrap">
+    <div class="rw-ico">🎉</div>
+    <div class="rw-ttl">You're All Set!</div>
+    <div class="rw-sub">You watched all ads and<br/>unlocked channel access!</div>
+    <div class="rw-box">Watched <strong id="wcount">0</strong> ads successfully 🔓<br/>Channel access granted!</div>
+    <button class="cta" onclick="goHome()">← Back to Home</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="bot-nav">
+  <button class="nav-btn active" onclick="navClick(0,this)"><span class="nav-ico">🏠</span>Home</button>
+  <button class="nav-btn" onclick="navClick(1,this)"><span class="nav-ico">🔔</span>Alerts</button>
+  <button class="nav-btn" onclick="navClick(2,this)"><span class="nav-ico">👤</span>Profile</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+const BLOCK_ID = "25624"; // ✅ Hardcoded Block ID
+
+const CHS = [
+  {name:"Gaming Universe",emoji:"🎮",desc:"Game news, walkthroughs, esports & reviews.",members:"18.4K",posts:"523",rating:"4.9",bg:"linear-gradient(135deg,#7c5cfc,#5c8afc)"},
+  {name:"Crypto Signals",emoji:"💰",desc:"Real-time signals, whale alerts & DeFi updates.",members:"34.1K",posts:"1.2K",rating:"4.7",bg:"linear-gradient(135deg,#fc5c7d,#fcb75c)"},
+  {name:"Design Hub",emoji:"🎨",desc:"UI/UX inspiration, Figma resources & font guides.",members:"9.2K",posts:"287",rating:"4.8",bg:"linear-gradient(135deg,#5cf0c8,#5ca8fc)"},
+  {name:"AI Tools Daily",emoji:"🤖",desc:"AI tools, prompt engineering & automation.",members:"41.7K",posts:"890",rating:"5.0",bg:"linear-gradient(135deg,#ffd166,#fc5c7d)"},
+];
+
+let adCount = 0;
+let fillTimer = null;
+
+// ══════════════════════════════════════════════
+// ✅ Adsgram — সঠিক init pattern
+// window.Adsgram.init() প্রতিটা ad show এর আগে call করতে হয়
+// ══════════════════════════════════════════════
+function getAdController() {
+  if (!window.Adsgram) {
+    console.error("❌ Adsgram SDK not loaded from sad.adsgram.ai");
+    return null;
+  }
+  try {
+    // ✅ প্রতিবার নতুন instance — Adsgram official pattern
+    const ctrl = window.Adsgram.init({ blockId: BLOCK_ID });
+    console.log("✅ Adsgram.init() success, blockId:", BLOCK_ID);
+    return ctrl;
+  } catch(e) {
+    console.error("❌ Adsgram.init() failed:", e);
+    return null;
+  }
+}
+
+// ══════════════════════════════════════════════
+// Telegram User
+// ══════════════════════════════════════════════
+function loadUser() {
+  const tg = window.Telegram?.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  const user = tg?.initDataUnsafe?.user;
+  if (user) {
+    document.getElementById("av").textContent = (user.first_name?.[0] || "U").toUpperCase();
+    if (user.photo_url) {
+      const img = new Image();
+      img.onload = () => { document.getElementById("av").innerHTML = `<img src="${user.photo_url}">`; };
+      img.src = user.photo_url;
+    }
+    document.getElementById("pname").textContent = `${user.first_name||""} ${user.last_name||""}`.trim()||"Telegram User";
+    document.getElementById("pusr").textContent = user.username ? `@${user.username}` : "@user";
+    document.getElementById("pid").textContent = `ID: ${user.id}`;
+  } else {
+    // Fallback for browser testing
+    document.getElementById("av").textContent = "T";
+    document.getElementById("pname").textContent = "Test User";
+    document.getElementById("pusr").textContent = "@testuser";
+    document.getElementById("pid").textContent = "ID: 123456789";
+  }
+}
+
+// ══════════════════════════════════════════════
+// Navigation
+// ══════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goHome() { showPage('pg-home'); }
+
+function openCh(i) {
+  const ch = CHS[i]; adCount = 0;
+  document.getElementById("dttl").textContent = ch.name;
+  document.getElementById("dsub").textContent = "Watch 2 ads to unlock access";
+  document.getElementById("dban").style.background = ch.bg;
+  document.getElementById("dban").textContent = ch.emoji;
+  document.getElementById("ddesc").textContent = ch.desc;
+  document.getElementById("sm").textContent = ch.members;
+  document.getElementById("sp").textContent = ch.posts;
+  document.getElementById("sr").textContent = ch.rating;
+  document.getElementById("joinBtn").disabled = false;
+  document.getElementById("joinBtn").textContent = "🎯 Join Channel — Watch Ad";
+  document.getElementById("errBox").style.display = "none";
+  showPage('pg-detail');
+}
+
+function navClick(i, el) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  if (i === 0) goHome();
+  else showToast(i===1 ? "🔔 No new alerts" : "👤 Profile coming soon");
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+// ══════════════════════════════════════════════
+// ✅ AD FLOW
+// ══════════════════════════════════════════════
+function startAd() {
+  document.getElementById("joinBtn").disabled = true;
+  adCount = 0;
+  showPage('pg-ad');
+  showLoadUI(1);
+  runAd();
+}
+
+function runAd() {
+  const ctrl = getAdController();
+
+  if (ctrl) {
+    // ✅ Real Adsgram ad
+    ctrl.show()
+      .then(() => {
+        // ✅ Ad successfully watched — reward করো
+        adCount++;
+        console.log(`✅ Ad ${adCount} watched successfully`);
+        showToast(`✅ Ad ${adCount}/2 complete!`);
+        afterAd();
+      })
+      .catch((result) => {
+        // ❌ Ad failed
+        console.warn("Ad failed:", JSON.stringify(result));
+        const state = result?.state || "unknown";
+        const desc = result?.description || "";
+
+        if (state === "load" || state === "network") {
+          // No fill — retry
+          showToast("🔄 No ad available, retrying…");
+          setTimeout(runAd, 3000);
+        } else if (result?.done === false) {
+          // User closed ad without finishing
+          showToast("⚠️ Please watch the full ad");
+          setTimeout(runAd, 1500);
+        } else {
+          // Other error
+          showPage('pg-detail');
+          document.getElementById("errBox").style.display = "block";
+          document.getElementById("joinBtn").disabled = false;
+          document.getElementById("joinBtn").textContent = "🔄 Retry";
+        }
+      });
+  } else {
+    // ─── Simulate for browser testing ───
+    console.warn("Adsgram not available — running simulation");
+    simulateAd();
+  }
+}
+
+function afterAd() {
+  if (adCount < 2) {
+    // Cooldown 5 seconds then next ad
+    showPage('pg-ad');
+    showCoolUI(() => {
+      showLoadUI(2);
+      runAd();
+    });
+  } else {
+    // All done → Reward
+    document.getElementById("wcount").textContent = adCount;
+    setTimeout(() => showPage('pg-reward'), 400);
+  }
+}
+
+// ══════════════════════════════════════════════
+// UI Helpers
+// ══════════════════════════════════════════════
+function showLoadUI(num) {
+  document.getElementById("stLoad").style.display = "flex";
+  document.getElementById("stCool").style.display = "none";
+  document.getElementById("adBadge").textContent = `Ad ${num} of 2`;
+  const fill = document.getElementById("fill");
+  fill.style.width = "0%";
+  if (fillTimer) clearInterval(fillTimer);
+  let p = 0;
+  fillTimer = setInterval(() => {
+    p += 2;
+    fill.style.width = Math.min(p, 88) + "%";
+    if (p >= 88) clearInterval(fillTimer);
+  }, 80);
+}
+
+function showCoolUI(cb) {
+  document.getElementById("stLoad").style.display = "none";
+  document.getElementById("stCool").style.display = "flex";
+  const numEl = document.getElementById("cdNum");
+  const ring = document.getElementById("ringFg");
+  const C = 226; let rem = 5;
+  numEl.textContent = rem;
+  ring.style.strokeDashoffset = C;
+  const iv = setInterval(() => {
+    rem--;
+    numEl.textContent = rem;
+    ring.style.strokeDashoffset = C - C * ((5 - rem) / 5);
+    if (rem <= 0) { clearInterval(iv); cb(); }
+  }, 1000);
+}
+
+// Browser simulation
+function simulateAd() {
+  const fill = document.getElementById("fill");
+  let p = 0;
+  const iv = setInterval(() => {
+    p += 2.5;
+    fill.style.width = Math.min(p, 100) + "%";
+    if (p >= 100) {
+      clearInterval(iv);
+      adCount++;
+      showToast(`[Sim] Ad ${adCount}/2 done ✅`);
+      afterAd();
+    }
+  }, 55);
+}
+
+// ══════════════════════════════════════════════
+// Boot
+// ══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', loadUser);
+</script>
+</body>
+</html>
